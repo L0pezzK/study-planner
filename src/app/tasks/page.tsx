@@ -16,6 +16,17 @@ interface Task {
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedSubject, setSelectedSubject] = useState<string>('All');
+  const [sortAscending, setSortAscending] = useState<boolean>(true);
+
+  const subjects = Array.from(new Set(tasks.map((t) => t.subject).filter(Boolean))) as string[];
+  const filteredAndSortedTasks = tasks
+    .filter(t => selectedSubject === 'All' || t.subject === selectedSubject)
+    .sort((a, b) => {
+      const dateA = new Date(a.dueDate).getTime();
+      const dateB = new Date(b.dueDate).getTime();
+      return sortAscending ? dateA - dateB : dateB - dateA;
+    });
 
   const toggleTaskCompletion = async (id: string | number, currentStatus: boolean) => {
     // Optimistically update UI
@@ -105,6 +116,43 @@ export default function TasksPage() {
           </div>
         </header>
 
+        {/* Action Bar */}
+        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm">
+          <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto">
+            <div className="flex items-center gap-2">
+              <label htmlFor="subject-filter" className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 whitespace-nowrap">
+                Subject:
+              </label>
+              <select
+                id="subject-filter"
+                value={selectedSubject}
+                onChange={(e) => setSelectedSubject(e.target.value)}
+                className="h-9 px-3 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none cursor-pointer"
+                style={{ paddingRight: '2.5rem', backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}
+              >
+                <option value="All">All Subjects</option>
+                {subjects.map((subject) => (
+                  <option key={subject} value={subject}>{subject}</option>
+                ))}
+              </select>
+            </div>
+            
+            <button
+              onClick={() => setSortAscending(!sortAscending)}
+              className="flex items-center gap-2 h-9 px-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors shadow-sm"
+            >
+              <svg className={`w-4 h-4 transition-transform ${sortAscending ? '' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+              </svg>
+              Due Date {sortAscending ? '(Nearest)' : '(Furthest)'}
+            </button>
+          </div>
+          
+          <div className="text-sm text-zinc-500 font-medium whitespace-nowrap">
+            {filteredAndSortedTasks.length} {filteredAndSortedTasks.length === 1 ? 'task' : 'tasks'}
+          </div>
+        </div>
+
         <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
           {loading ? (
             // Loading State (Skeletons)
@@ -119,18 +167,18 @@ export default function TasksPage() {
                 </div>
               </div>
             ))
-          ) : tasks.length === 0 ? (
+          ) : filteredAndSortedTasks.length === 0 ? (
             // Empty State
             <div className="col-span-full py-12 text-center border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl bg-white/50 dark:bg-zinc-900/50">
               <svg className="mx-auto h-12 w-12 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               <h3 className="mt-4 text-sm font-semibold text-zinc-900 dark:text-zinc-100">No tasks</h3>
-              <p className="mt-1 text-sm text-zinc-500">Get started by adding a new task.</p>
+              <p className="mt-1 text-sm text-zinc-500">Get started by adding a new task, or adjust your subject filters.</p>
             </div>
           ) : (
             // Tasks List
-            tasks.map((task) => (
+            filteredAndSortedTasks.map((task) => (
               <div
                 key={task.id}
                 className={`relative flex flex-col p-6 rounded-2xl border transition-all cursor-default ${
