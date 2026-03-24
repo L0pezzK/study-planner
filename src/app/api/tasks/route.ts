@@ -67,9 +67,11 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const { id, completed } = await request.json();
-    if (id === undefined || completed === undefined) {
-      return NextResponse.json({ error: 'Missing id or completed status' }, { status: 400 });
+    const body = await request.json();
+    const { id, completed, subtasks } = body;
+    
+    if (id === undefined) {
+      return NextResponse.json({ error: 'Missing task id' }, { status: 400 });
     }
 
     const tasks = getTasks();
@@ -79,7 +81,14 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
-    tasks[taskIndex].completed = completed;
+    if (completed !== undefined) {
+      tasks[taskIndex].completed = completed;
+    }
+    
+    if (subtasks !== undefined) {
+      tasks[taskIndex].subtasks = subtasks;
+    }
+    
     fs.writeFileSync(dataFilePath, JSON.stringify(tasks, null, 2));
 
     return NextResponse.json(tasks[taskIndex]);

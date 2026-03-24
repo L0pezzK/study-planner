@@ -3,7 +3,13 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
-// Task interface
+// Task interfaces
+interface Subtask {
+  id: string | number;
+  title: string;
+  completed: boolean;
+}
+
 interface Task {
   id: number | string;
   title: string;
@@ -11,6 +17,7 @@ interface Task {
   completed: boolean;
   subject?: string;
   priority?: 'low' | 'medium' | 'high';
+  subtasks?: Subtask[];
 }
 
 export default function TasksPage() {
@@ -43,6 +50,78 @@ export default function TasksPage() {
       const dateB = new Date(b.dueDate).getTime();
       return sortAscending ? dateA - dateB : dateB - dateA;
     });
+
+  const addSubtask = async (taskId: string | number, title: string) => {
+    const newSubtask: Subtask = { id: Date.now(), title, completed: false };
+    const taskIndex = tasks.findIndex(t => String(t.id) === String(taskId));
+    if (taskIndex === -1) return;
+    
+    const targetTask = tasks[taskIndex];
+    const updatedSubtasks = [...(targetTask.subtasks || []), newSubtask];
+
+    const prevTasks = [...tasks];
+    setTasks(prev => prev.map(t => String(t.id) === String(taskId) ? { ...t, subtasks: updatedSubtasks } : t));
+
+    try {
+      const res = await fetch('/api/tasks', {
+         method: 'PATCH',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ id: taskId, subtasks: updatedSubtasks })
+      });
+      if (!res.ok) throw new Error('Failed to update subtasks');
+    } catch(err) {
+      console.error(err);
+      setTasks(prevTasks);
+    }
+  };
+
+  const toggleSubtaskCompletion = async (taskId: string | number, subtaskId: string | number) => {
+    const taskIndex = tasks.findIndex(t => String(t.id) === String(taskId));
+    if (taskIndex === -1) return;
+    
+    const targetTask = tasks[taskIndex];
+    if (!targetTask.subtasks) return;
+
+    const updatedSubtasks = targetTask.subtasks.map(s => String(s.id) === String(subtaskId) ? { ...s, completed: !s.completed } : s);
+    const prevTasks = [...tasks];
+    setTasks(prev => prev.map(t => String(t.id) === String(taskId) ? { ...t, subtasks: updatedSubtasks } : t));
+
+    try {
+      const res = await fetch('/api/tasks', {
+         method: 'PATCH',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ id: taskId, subtasks: updatedSubtasks })
+      });
+      if (!res.ok) throw new Error('Failed to update subtasks');
+    } catch(err) {
+      console.error(err);
+      setTasks(prevTasks);
+    }
+  };
+
+  const deleteSubtask = async (taskId: string | number, subtaskId: string | number) => {
+    const taskIndex = tasks.findIndex(t => String(t.id) === String(taskId));
+    if (taskIndex === -1) return;
+    
+    const targetTask = tasks[taskIndex];
+    if (!targetTask.subtasks) return;
+
+    const updatedSubtasks = targetTask.subtasks.filter(s => String(s.id) !== String(subtaskId));
+    const prevTasks = [...tasks];
+    setTasks(prev => prev.map(t => String(t.id) === String(taskId) ? { ...t, subtasks: updatedSubtasks } : t));
+
+    try {
+      const res = await fetch('/api/tasks', {
+         method: 'PATCH',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ id: taskId, subtasks: updatedSubtasks })
+      });
+      if (!res.ok) throw new Error('Failed to update subtasks');
+    } catch(err) {
+      console.error(err);
+      setTasks(prevTasks);
+    }
+  };
 
   const toggleTaskCompletion = async (id: string | number, currentStatus: boolean) => {
     // Optimistically update UI
@@ -284,6 +363,56 @@ export default function TasksPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
                   </button>
+                </div>
+
+                {/* Subtasks Section */}
+                <div className="mt-5 pt-4 border-t border-zinc-100 dark:border-zinc-800/60">
+                  {task.subtasks && task.subtasks.length > 0 && (
+                    <div className="mb-3 space-y-2">
+                      {task.subtasks.map((sub) => (
+                        <div key={sub.id} className="flex items-center gap-2 group">
+                          <button
+                              onClick={() => toggleSubtaskCompletion(task.id, sub.id)}
+                              className={`flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors ${sub.completed ? 'bg-blue-600 border-blue-600' : 'border-zinc-300 dark:border-zinc-600'}`}
+                          >
+                              {sub.completed && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>}
+                          </button>
+                          <span className={`text-sm flex-1 ${sub.completed ? 'text-zinc-400 line-through' : 'text-zinc-700 dark:text-zinc-300'}`}>
+                            {sub.title}
+                          </span>
+                          <button
+                              onClick={() => deleteSubtask(task.id, sub.id)}
+                              className="opacity-0 group-hover:opacity-100 p-1 text-zinc-400 hover:text-red-500 transition-opacity"
+                              title="Delete subtask"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <form 
+                    onSubmit={(e) => { 
+                      e.preventDefault(); 
+                      const input = e.currentTarget.elements.namedItem('title') as HTMLInputElement;
+                      if (input.value.trim()) {
+                          addSubtask(task.id, input.value.trim());
+                          input.value = '';
+                      }
+                    }} 
+                    className="flex items-center gap-2 text-sm"
+                  >
+                    <svg className="w-4 h-4 outline-none text-zinc-400 dark:text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                    <input 
+                      name="title" 
+                      type="text" 
+                      placeholder="Add a subtask..." 
+                      className="flex-1 bg-transparent border-none focus:ring-0 p-0 m-0 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 outline-none"
+                    />
+                    <button type="submit" className="hidden">Submit</button>
+                  </form>
                 </div>
               </div>
             ))

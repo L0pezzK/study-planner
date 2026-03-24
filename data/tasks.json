@@ -3,6 +3,18 @@
     "id": 4,
     "title": "Study for Physics Midterm",
     "dueDate": "2026-04-02",
-    "completed": false
+    "completed": false,
+    "subtasks": [
+      {
+        "id": 1774363204218,
+        "title": "blah",
+        "completed": false
+      },
+      {
+        "id": 1774363207424,
+        "title": "deez",
+        "completed": false
+      }
+    ]
   }
 ]
