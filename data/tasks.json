@@ -1,11 +1,5 @@
 [
   {
-    "id": 2,
-    "title": "Complete Math Assignment 3",
-    "dueDate": "2026-03-26",
-    "completed": true
-  },
-  {
     "id": 3,
     "title": "Write History Essay Draft",
     "dueDate": "2026-03-28",

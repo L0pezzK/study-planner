@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
@@ -47,6 +49,8 @@ export async function POST(request: Request) {
       title: body.title || 'Untitled Task',
       dueDate: body.dueDate || new Date().toISOString().split('T')[0],
       completed: body.completed ?? false,
+      subject: body.subject || undefined,
+      priority: body.priority || undefined,
     };
 
     tasks.push(newTask);
@@ -69,7 +73,7 @@ export async function PATCH(request: Request) {
     }
 
     const tasks = getTasks();
-    const taskIndex = tasks.findIndex((t: any) => t.id === id);
+    const taskIndex = tasks.findIndex((t: any) => String(t.id) === String(id));
     
     if (taskIndex === -1) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
@@ -87,13 +91,24 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const { id } = await request.json();
-    if (id === undefined) {
+    const url = new URL(request.url);
+    let id = url.searchParams.get('id');
+
+    if (!id) {
+      try {
+        const body = await request.json();
+        id = body.id;
+      } catch (e) {
+        // Body might be empty
+      }
+    }
+
+    if (id === undefined || id === null) {
       return NextResponse.json({ error: 'Missing task id' }, { status: 400 });
     }
 
     const tasks = getTasks();
-    const taskIndex = tasks.findIndex((t: any) => t.id === id);
+    const taskIndex = tasks.findIndex((t: any) => String(t.id) === String(id));
     
     if (taskIndex === -1) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });

@@ -30,7 +30,7 @@ export default function TasksPage() {
 
   const toggleTaskCompletion = async (id: string | number, currentStatus: boolean) => {
     // Optimistically update UI
-    setTasks((prev) => prev.map((t) => t.id === id ? { ...t, completed: !currentStatus } : t));
+    setTasks((prev) => prev.map((t) => String(t.id) === String(id) ? { ...t, completed: !currentStatus } : t));
     try {
       const res = await fetch('/api/tasks', {
         method: 'PATCH',
@@ -41,7 +41,7 @@ export default function TasksPage() {
     } catch (error) {
       console.error('Failed to update task:', error);
       // Revert on error
-      setTasks((prev) => prev.map((t) => t.id === id ? { ...t, completed: currentStatus } : t));
+      setTasks((prev) => prev.map((t) => String(t.id) === String(id) ? { ...t, completed: currentStatus } : t));
     }
   };
 
@@ -49,13 +49,12 @@ export default function TasksPage() {
     if (!window.confirm('Are you sure you want to delete this task?')) return;
 
     const previousTasks = [...tasks];
-    setTasks((prev) => prev.filter((t) => t.id !== id));
+    setTasks((prev) => prev.filter((t) => String(t.id) !== String(id)));
 
     try {
-      const res = await fetch('/api/tasks', {
+      const res = await fetch(`/api/tasks?id=${id}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
       });
       if (!res.ok) throw new Error('Failed to delete task');
     } catch (error) {
