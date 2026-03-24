@@ -52,9 +52,10 @@ export default function TasksPage() {
     setTasks((prev) => prev.filter((t) => String(t.id) !== String(id)));
 
     try {
-      const res = await fetch(`/api/tasks?id=${id}`, {
+      const res = await fetch('/api/tasks', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
       });
       if (!res.ok) throw new Error('Failed to delete task');
     } catch (error) {

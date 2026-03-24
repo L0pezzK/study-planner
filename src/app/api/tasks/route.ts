@@ -91,17 +91,7 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const url = new URL(request.url);
-    let id = url.searchParams.get('id');
-
-    if (!id) {
-      try {
-        const body = await request.json();
-        id = body.id;
-      } catch (e) {
-        // Body might be empty
-      }
-    }
+    const { id } = await request.json();
 
     if (id === undefined || id === null) {
       return NextResponse.json({ error: 'Missing task id' }, { status: 400 });
