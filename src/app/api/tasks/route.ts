@@ -60,3 +60,51 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to add task' }, { status: 500 });
   }
 }
+
+export async function PATCH(request: Request) {
+  try {
+    const { id, completed } = await request.json();
+    if (id === undefined || completed === undefined) {
+      return NextResponse.json({ error: 'Missing id or completed status' }, { status: 400 });
+    }
+
+    const tasks = getTasks();
+    const taskIndex = tasks.findIndex((t: any) => t.id === id);
+    
+    if (taskIndex === -1) {
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+    }
+
+    tasks[taskIndex].completed = completed;
+    fs.writeFileSync(dataFilePath, JSON.stringify(tasks, null, 2));
+
+    return NextResponse.json(tasks[taskIndex]);
+  } catch (error) {
+    console.error("Failed to update task:", error);
+    return NextResponse.json({ error: 'Failed to update task' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { id } = await request.json();
+    if (id === undefined) {
+      return NextResponse.json({ error: 'Missing task id' }, { status: 400 });
+    }
+
+    const tasks = getTasks();
+    const taskIndex = tasks.findIndex((t: any) => t.id === id);
+    
+    if (taskIndex === -1) {
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+    }
+
+    const [deletedTask] = tasks.splice(taskIndex, 1);
+    fs.writeFileSync(dataFilePath, JSON.stringify(tasks, null, 2));
+
+    return NextResponse.json(deletedTask);
+  } catch (error) {
+    console.error("Failed to delete task:", error);
+    return NextResponse.json({ error: 'Failed to delete task' }, { status: 500 });
+  }
+}

@@ -17,6 +17,43 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const toggleTaskCompletion = async (id: string | number, currentStatus: boolean) => {
+    // Optimistically update UI
+    setTasks((prev) => prev.map((t) => t.id === id ? { ...t, completed: !currentStatus } : t));
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, completed: !currentStatus }),
+      });
+      if (!res.ok) throw new Error('Failed to update task');
+    } catch (error) {
+      console.error('Failed to update task:', error);
+      // Revert on error
+      setTasks((prev) => prev.map((t) => t.id === id ? { ...t, completed: currentStatus } : t));
+    }
+  };
+
+  const deleteTask = async (id: string | number) => {
+    if (!window.confirm('Are you sure you want to delete this task?')) return;
+
+    const previousTasks = [...tasks];
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) throw new Error('Failed to delete task');
+    } catch (error) {
+      console.error('Failed to delete task:', error);
+      alert('Failed to delete task from server.');
+      setTasks(previousTasks);
+    }
+  };
+
   useEffect(() => {
     const fetchTasks = async () => {
       try {
@@ -126,30 +163,45 @@ export default function TasksPage() {
                       </div>
                     )}
                   </div>
-                  <div className={`mt-1 flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                    task.completed 
-                      ? 'bg-blue-600 border-blue-600 text-white' 
-                      : 'bg-transparent border-zinc-300 dark:border-zinc-700 hover:border-blue-400 dark:hover:border-blue-500 cursor-pointer'
-                  }`}>
+                  <button 
+                    onClick={() => toggleTaskCompletion(task.id, task.completed)}
+                    aria-label={task.completed ? "Mark as incomplete" : "Mark as complete"}
+                    className={`mt-1 flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900 ${
+                      task.completed 
+                        ? 'bg-blue-600 border-blue-600 text-white' 
+                        : 'bg-transparent border-zinc-300 dark:border-zinc-700 hover:border-blue-400 dark:hover:border-blue-500 cursor-pointer'
+                    }`}>
                     {task.completed && (
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                       </svg>
                     )}
-                  </div>
+                  </button>
                 </div>
-                <div className="mt-6 flex flex-wrap items-center gap-3">
-                  <div className="flex items-center text-sm font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800/50 px-3 py-1.5 rounded-md">
-                    <svg className="mr-2 w-4 h-4 text-zinc-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    Due: {new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </div>
-                  {task.completed && (
-                    <div className="flex items-center text-xs font-semibold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1.5 rounded-md">
-                      Done
+                <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center text-sm font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800/50 px-3 py-1.5 rounded-md">
+                      <svg className="mr-2 w-4 h-4 text-zinc-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      Due: {new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </div>
-                  )}
+                    {task.completed && (
+                      <div className="flex items-center text-xs font-semibold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1.5 rounded-md">
+                        Done
+                      </div>
+                    )}
+                  </div>
+                  <button 
+                    onClick={() => deleteTask(task.id)} 
+                    className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                    aria-label="Delete Task"
+                    title="Delete Task"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
                 </div>
               </div>
             ))
