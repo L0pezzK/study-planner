@@ -17,12 +17,28 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSubject, setSelectedSubject] = useState<string>('All');
+  const [selectedPriority, setSelectedPriority] = useState<string>('All');
   const [sortAscending, setSortAscending] = useState<boolean>(true);
 
   const subjects = Array.from(new Set(tasks.map((t) => t.subject).filter(Boolean))) as string[];
+  
+  const getPriorityValue = (p?: string) => {
+    if (p === 'high') return 3;
+    if (p === 'medium') return 2;
+    if (p === 'low') return 1;
+    return 0;
+  };
+
   const filteredAndSortedTasks = tasks
     .filter(t => selectedSubject === 'All' || t.subject === selectedSubject)
+    .filter(t => selectedPriority === 'All' || t.priority === selectedPriority)
     .sort((a, b) => {
+      // Sort by priority first (descending: high -> medium -> low -> none)
+      const pA = getPriorityValue(a.priority);
+      const pB = getPriorityValue(b.priority);
+      if (pA !== pB) return pB - pA;
+      
+      // Fallback to due date sort
       const dateA = new Date(a.dueDate).getTime();
       const dateB = new Date(b.dueDate).getTime();
       return sortAscending ? dateA - dateB : dateB - dateA;
@@ -134,6 +150,24 @@ export default function TasksPage() {
                 {subjects.map((subject) => (
                   <option key={subject} value={subject}>{subject}</option>
                 ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label htmlFor="priority-filter" className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 whitespace-nowrap">
+                Priority:
+              </label>
+              <select
+                id="priority-filter"
+                value={selectedPriority}
+                onChange={(e) => setSelectedPriority(e.target.value)}
+                className="h-9 px-3 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none cursor-pointer"
+                style={{ paddingRight: '2.5rem', backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}
+              >
+                <option value="All">All Priorities</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
               </select>
             </div>
             
